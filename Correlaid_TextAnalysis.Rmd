@@ -1,0 +1,103 @@
+---
+title: "Text Analysis of Correlaid"
+author: "Qianhui Rong"
+date: "11/3/2018"
+output: pdf_document
+---
+
+```{r setup, include=FALSE,warning=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+We want to analyze the passage from https://correlaid.org/blog/posts/understand-p-values. 
+```{r}
+library(tidytext)
+library(dplyr)
+library(stringr)
+library(ggplot2)
+
+correlaid_txt <- read.delim("correlaid_pvalue.txt")
+correlaid_txt <- data.frame(lapply(correlaid_txt, as.character), stringsAsFactors=FALSE)
+colnames(correlaid_txt) <- c("text")
+correlaid_txt %>% unnest_tokens(output = word,input = text) -> token_correlaid
+
+data("stop_words")
+token_correlaid %>%
+  anti_join(stop_words) -> tidy_correlaid
+
+tidy_correlaid %>% 
+  count(word,sort=TRUE)
+
+tidy_correlaid %>% 
+  count(word,sort=TRUE) %>%
+  top_n(20) %>% 
+  mutate(word=reorder(word,n)) %>%  #reorder 
+  ggplot(aes(word, n)) +
+  geom_col() +
+  xlab(NULL) +
+  coord_flip()
+```
+After eliminating the stop words in the article, we order the words appeared in the passage by frequency and we made a ggplot to show the 20 most frequent words appear in the article.
+
+```{r}
+sentiment_correlaid <- tidy_correlaid %>%  #With Bing 
+  inner_join(get_sentiments("bing"))%>% 
+  mutate(method = "Bing")
+sentiment_correlaid %>% 
+  count(word,sort=TRUE) %>%
+  top_n(20) %>% 
+  mutate(word=reorder(word,n)) %>% 
+  ggplot(aes(word, n)) + 
+  geom_col() +
+  xlab(NULL) +
+  coord_flip()
+```
+In order to get an odea of the passage's sentiment on P-Value, we applied Bing sentiment package, and made a ggplot of the top 20 sentimental words in the article. The first one "significant" is about 3 times more frequent than the second word in order. That should be due to the term "statistically significant".
+Then we want to compare the results from the other two packages of sentimenal words: AFINN and NRC.
+```{r}
+sentiment_correlaid_AF <- tidy_correlaid %>% 
+  inner_join(get_sentiments("afinn"))%>% 
+  mutate(method = "AFINN")
+sentiment_correlaid_NRC <- tidy_correlaid %>% 
+  inner_join(get_sentiments("nrc"))%>% 
+  mutate(method = "NRC")
+
+bind_rows(sentiment_correlaid,
+          sentiment_correlaid_NRC) %>%
+  mutate(Count=n()) -> three_pack
+ggplot(aes(sentiment, Count,fill = method),data=three_pack) +
+  geom_col(show.legend = FALSE)+
+  facet_wrap(~method, ncol = 1, scales = "free_y")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 0.5, vjust = 0.5))+
+  coord_flip()
+
+#Because AFINN's results are in numerical continuous scale, so we draw a seperate plot for it.
+
+sentiment_correlaid_AF %>% 
+  ggplot()+
+  geom_histogram(aes(x=score,fill=word),stat="bin",show.legend = TRUE)+
+  theme(legend.position="bottom")+
+  scale_alpha_discrete(breaks=c(-3,-2,-1,0,1,2,3))
+```
+
+We want to also see the wordcloud.
+```{r}
+library(wordcloud)
+tidy_correlaid %>%
+  count(word) %>%
+  with(wordcloud(word, n, max.words = 100))
+
+library(reshape2)
+tidy_correlaid %>%
+  inner_join(get_sentiments("bing")) %>%
+  count(word, sentiment, sort = TRUE) %>%
+  acast(word ~ sentiment, value.var = "n", fill = 0) %>%
+  comparison.cloud(colors = c("black", "red"),
+                   max.words = 100)
+```
+
+To check more accurately words frequency, we will then apply tf-idf.
+
+
+
+
