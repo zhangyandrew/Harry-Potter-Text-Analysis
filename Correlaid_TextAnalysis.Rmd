@@ -9,6 +9,8 @@ output: pdf_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+**Seperate Analysis on Each Article**
+## P-Value Article 
 We want to analyze the passage from https://correlaid.org/blog/posts/understand-p-values. 
 ```{r}
 library(tidytext)
@@ -96,8 +98,143 @@ tidy_correlaid %>%
                    max.words = 100)
 ```
 
-To check more accurately words frequency, we will then apply tf-idf.
 
+## From the Data to the Story Article 
+We want to analyze the passage from https://correlaid.org/blog/posts/journocode-workflow. 
+```{r}
+library(tidytext)
+library(dplyr)
+library(stringr)
+library(ggplot2)
+
+correlaid_txt2 <- read.delim("correlaid_fromdatatostory.txt")
+correlaid_txt2 <- data.frame(lapply(correlaid_txt2, as.character), stringsAsFactors=FALSE)
+colnames(correlaid_txt2) <- c("text")
+correlaid_txt2 %>% unnest_tokens(output = word,input = text) -> token_correlaid2
+
+data("stop_words")
+token_correlaid2 %>%
+  anti_join(stop_words) -> tidy_correlaid2
+
+tidy_correlaid2 %>% 
+  count(word,sort=TRUE)
+
+tidy_correlaid2 %>% 
+  count(word,sort=TRUE) %>%
+  top_n(20) %>% 
+  mutate(word=reorder(word,n)) %>%  #reorder 
+  ggplot(aes(word, n)) +
+  geom_col() +
+  xlab(NULL) +
+  coord_flip()
+```
+After eliminating the stop words in the article, we order the words appeared in the passage by frequency and we made a ggplot to show the 20 most frequent words appear in the article.
+
+```{r}
+sentiment_correlaid2 <- tidy_correlaid2 %>%  #With Bing 
+  inner_join(get_sentiments("bing"))%>% 
+  mutate(method = "Bing")
+sentiment_correlaid2 %>% 
+  count(word,sort=TRUE) %>%
+  top_n(20) %>% 
+  mutate(word=reorder(word,n)) %>% 
+  ggplot(aes(word, n)) + 
+  geom_col() +
+  xlab(NULL) +
+  coord_flip()
+```
+In order to get an odea of the passage's sentiment on this article, we applied Bing sentiment package, and made a ggplot of the top 20 sentimental words in the article. The first three are "plot", "excel" and "tidy", which is reasonable because this is a tutorial of R.
+Then we want to compare the results from the other two packages of sentimenal words: AFINN and NRC.
+
+```{r}
+sentiment_correlaid_AF2 <- tidy_correlaid2 %>% 
+  inner_join(get_sentiments("afinn"))%>% 
+  mutate(method = "AFINN")
+sentiment_correlaid_NRC2 <- tidy_correlaid2 %>% 
+  inner_join(get_sentiments("nrc"))%>% 
+  mutate(method = "NRC")
+
+bind_rows(sentiment_correlaid2,
+          sentiment_correlaid_NRC2) %>%
+  mutate(Count=n()) -> three_pack2
+ggplot(aes(sentiment, Count,fill = method),data=three_pack2) +
+  geom_col(show.legend = FALSE)+
+  facet_wrap(~method, ncol = 1, scales = "free_y")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 0.5, vjust = 0.5))+
+  coord_flip()
+
+#Because AFINN's results are in numerical continuous scale, so we draw a seperate plot for it.
+
+sentiment_correlaid_AF2 %>% 
+  ggplot()+
+  geom_histogram(aes(x=score,fill=word),stat="bin",show.legend = TRUE)+
+  theme(legend.position="bottom")+
+  scale_alpha_discrete(breaks=c(-3,-2,-1,0,1,2,3))
+```
+
+We want to also see the wordcloud.
+```{r}
+library(wordcloud)
+tidy_correlaid2 %>%
+  count(word) %>%
+  with(wordcloud(word, n, max.words = 100))
+
+library(reshape2)
+tidy_correlaid2 %>%
+  inner_join(get_sentiments("bing")) %>%
+  count(word, sentiment, sort = TRUE) %>%
+  acast(word ~ sentiment, value.var = "n", fill = 0) %>%
+  comparison.cloud(colors = c("black", "red"),
+                   max.words = 100)
+```
+
+
+**Combined Analysis on Two Articles**
+To find important words for the context by decreasing the weight for commonly used words, we apply bind_tf_idf function for these two article.
+```{r}
+tidy_correlaid %>% group_by(word) %>% 
+  mutate(n=n()) %>% 
+  mutate(article="P-value") %>% 
+  arrange(n) -> correlaid_words
+tidy_correlaid2 %>% group_by(word) %>% 
+  mutate(n=n()) %>% 
+  mutate(article="Data-Story") %>% 
+  arrange(n) -> correlaid_words2
+total_words <- rbind(correlaid_words,correlaid_words2) 
+total_words %>% group_by(article) %>% 
+  mutate(total=sum(n)) %>% 
+  mutate(rank=row_number(), `term frequency`= n/total) -> all_words
+#all_words has all information we need to do tf_idf analysis.
+
+ggplot(all_words, aes(n/total, fill = article)) +
+  geom_histogram(show.legend = FALSE) +
+  facet_wrap(~article, nrow = 2, scales = "free_y")+
+  ggtitle("Frequency VS Count")
+```
+We can see that the tails are not so long and these two article exhibit similar distribution. Their peaks are at similar points.
+```{r}
+ggplot(all_words,aes(rank, `term frequency`, color = article)) + geom_line(size = 1.1, alpha = 0.8, show.legend = FALSE) + 
+  scale_x_log10() +
+  scale_y_log10()+
+  ggtitle("Rand VS Term Frequency")
+```
+The result is totally opposite to the Zipf's Law, which states that a word appears is inversely proportional to its rank.
+
+Then we apply bind_tf_idf function to find the important words for the content of each document by decreasing the weight for commonly used words and increasing the weight for words that not used very much. 
+```{r}
+all_words <- all_words %>% bind_tf_idf(word, article, n)
+all_words %>% 
+  select(-total) %>% 
+  arrange(desc(tf_idf)) %>% 
+  top_n(10) %>% 
+  group_by(article) %>% 
+  ungroup %>% 
+  ggplot()+
+  geom_col(aes(word,tf_idf,fill=article))+
+  labs(x=NULL,y="tf-idf")+
+  facet_wrap(~article,nrow=2,scales = "free")+
+  coord_flip()
+```
 
 
 
