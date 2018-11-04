@@ -1,0 +1,51 @@
+---
+title: "Boston_Map"
+author: "Longhao"
+date: "November 3, 2018"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+The first step is to import the data file downloaded from the website.
+```{r}
+mayorsfoodcourt <- read.csv("mayorsfoodcourt.csv")
+```
+
+Then we are interested in how many food courts available in Boston and we will need to do some
+data cleaning.
+```{r}
+library(tidyverse)
+library(maps)
+library(mapdata)
+library(ggmap)
+# This is find out the unique food courts in the dataframe. 
+total <-unique(x = mayorsfoodcourt$LICENSENO)
+
+#There are total 8168 food courts in Boston Areas. But not all of them are active 
+#so we want to remove the inactive courts. Also not all of them have a recond on violation status
+#we want to remove those rows as well.There are data from 2007 until 2018, 
+#we are probbaly only interested in the recent 2 years data so we want to filter the data.
+#
+act_Court<- mayorsfoodcourt %>% filter(LICSTATUS == "Active") %>% filter(ViolStatus == "Pass"| ViolStatus== "Fail") %>% filter(str_detect(VIOLDTTM, "2017|2018") ) 
+
+#We want to convert location into latitude and longitude and remove NA values since we can not plot them
+locat1<-act_Court%>% separate(Location, c("latitude", "longitude"), ",") %>% filter(!is.na(longitude)) 
+
+#There are annoying charact or "(", ")" in the column entry and we want to remove them
+locat1$latitude<-as.numeric(substr(locat1$latitude,start = 2,stop = 13))
+locat1$longitude<-as.numeric(substr(locat1$longitude,start = 1, stop = 13))
+#Then we want to look at individual business pass/fail status
+score <- act_Court %>% group_by(businessName,ViolStatus) %>% summarise(businessName,ViolStatus)
+
+#Then let's define the boundry
+boston_bbox <- make_bbox(lat = latitude, lon = longitude, data = locat1)
+boston_map <- get_map(location = boston_bbox, source = "google", maptype = "terrain")
+
+ggmap(boston_map) + 
+  geom_point(data = locat1, mapping = aes(x = longitude, y = latitude, color= ViolStatus))
+
+```
+
