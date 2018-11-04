@@ -2,7 +2,9 @@
 title: "Text Analysis of Correlaid"
 author: "Qianhui Rong"
 date: "11/3/2018"
-output: pdf_document
+output:
+  word_document: default
+  pdf_document: default
 ---
 
 ```{r setup, include=FALSE,warning=FALSE}
@@ -310,7 +312,7 @@ ggraph(bigram_graph, layout = "fr") +
   geom_node_point() +
   geom_node_text(aes(label = name), vjust = 1, hjust = 1)+
   coord_fixed(0.8)+
-  ggtile("Network Plot for P-Value Article")
+  ggtitle("Network Plot for P-Value Article")
 
 #Network for Data to Story Article
 bigrams_separated2 <- 
@@ -326,6 +328,6 @@ ggraph(bigram_graph2, layout = "fr") +
   geom_node_point() +
   geom_node_text(aes(label = name), vjust = 1, hjust = 1)+
   coord_fixed(0.8)+
-  ggtile("Network Plot for Data to Story Article")
+  ggtitle("Network Plot for Data to Story Article")
 ```
 
