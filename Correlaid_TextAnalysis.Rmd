@@ -1,6 +1,6 @@
 ---
 title: "Text Analysis of Correlaid"
-author: "Qianhui Rong"
+author: "Longhao Chen/Qianhui Rong/Wenjia Xie/Andrew Zhang"
 date: "11/3/2018"
 output:
   word_document: default
