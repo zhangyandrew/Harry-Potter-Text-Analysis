@@ -47,5 +47,6 @@ boston_map <- get_map(location = boston_bbox, source = "google", maptype = "terr
 ggmap(boston_map) + 
   geom_point(data = locat1, mapping = aes(x = longitude, y = latitude, color= ViolStatus))
 
+.
 ```
 
