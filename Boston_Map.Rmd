@@ -38,15 +38,19 @@ locat1<-act_Court%>% separate(Location, c("latitude", "longitude"), ",") %>% fil
 locat1$latitude<-as.numeric(substr(locat1$latitude,start = 2,stop = 13))
 locat1$longitude<-as.numeric(substr(locat1$longitude,start = 1, stop = 13))
 #Then we want to look at individual business pass/fail status
-score <- act_Court %>% group_by(businessName,ViolStatus) %>% summarise(businessName,ViolStatus)
+# score <- act_Court %>% group_by(businessName,ViolStatus) %>%
+#   summarise(businessName,ViolStatus)
 
 #Then let's define the boundry
 boston_bbox <- make_bbox(lat = latitude, lon = longitude, data = locat1)
 boston_map <- get_map(location = boston_bbox, source = "google", maptype = "terrain")
 
 ggmap(boston_map) + 
-  geom_point(data = locat1, mapping = aes(x = longitude, y = latitude, color= ViolStatus))
+  geom_point(data = locat1, mapping = aes(x = longitude, y = latitude, color= ViolStatus),size=0.8)+
+  xlab("Longitude")+ylab("Latitude")+
+  ggtitle("Boston Food Court Map")+
+  theme(plot.title = element_text(hjust = 0.5))
 
-.
+
 ```
 
