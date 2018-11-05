@@ -11,7 +11,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 The first step is to import the data file downloaded from the website.
 ```{r}
-mayorsfoodcourt <- read.csv("mayorsfoodcourt.csv")
+mayorsfoodcourt <- read.csv("~/Desktop/mayorsfoodcourt.csv")
 ```
 
 Then we are interested in how many food courts available in Boston and we will need to do some
@@ -32,21 +32,41 @@ total <-unique(x = mayorsfoodcourt$LICENSENO)
 act_Court<- mayorsfoodcourt %>% filter(LICSTATUS == "Active") %>% filter(ViolStatus == "Pass"| ViolStatus== "Fail") %>% filter(str_detect(VIOLDTTM, "2017|2018") ) 
 
 #We want to convert location into latitude and longitude and remove NA values since we can not plot them
+#After calculation there is about 28% of locations missing from dataset.
 locat1<-act_Court%>% separate(Location, c("latitude", "longitude"), ",") %>% filter(!is.na(longitude)) 
 
 #There are annoying charact or "(", ")" in the column entry and we want to remove them
 locat1$latitude<-as.numeric(substr(locat1$latitude,start = 2,stop = 13))
 locat1$longitude<-as.numeric(substr(locat1$longitude,start = 1, stop = 13))
 #Then we want to look at individual business pass/fail status
-score <- act_Court %>% group_by(businessName,ViolStatus) %>% summarise(businessName,ViolStatus)
+locat1$pass_fail <- as.numeric(locat1$ViolStatus)-3
+
+same_food_court <- locat1 %>% group_by(locat1$LICENSENO)
+sum<-same_food_court %>% summarise(sum(same_food_court$pass_fail))
+View(sum)
+# score <- act_Court %>% group_by(businessName,ViolStatus) %>%
+#   summarise(businessName,ViolStatus)
 
 #Then let's define the boundry
 boston_bbox <- make_bbox(lat = latitude, lon = longitude, data = locat1)
+
+
+
+#If you run into error for the following code, it is not because the code is wrong.
+#This is due to the fact that Google changes their API policy and we can no longer 
+#get access through the Goolge Api without billing them and there is also a daily limit.
+
 boston_map <- get_map(location = boston_bbox, source = "google", maptype = "terrain")
 
-ggmap(boston_map) + 
-  geom_point(data = locat1, mapping = aes(x = longitude, y = latitude, color= ViolStatus))
+bc_big <- get_map(location = boston_bbox, source = "google", maptype = "terrain")
 
+ggmap(boston_map) + 
+  geom_point(data = locat1, mapping = aes(x = longitude, y = latitude, color= ViolStatus),size=0.8)+
+  xlab("Longitude")+ylab("Latitude") +
+  ggtitle("Boston Food Court Map") +
+  theme(plot.title = element_text(hjust = 0.5))
+
+map_data("boston")
 
 ```
 
