@@ -11,7 +11,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 The first step is to import the data file downloaded from the website.
 ```{r}
-mayorsfoodcourt <- read.csv("~/Desktop/mayorsfoodcourt.csv")
+mayorsfoodcourt <- read.csv("mayorsfoodcourt.csv")
 ```
 
 Then we are interested in how many food courts available in Boston and we will need to do some
@@ -38,12 +38,25 @@ locat1<-act_Court%>% separate(Location, c("latitude", "longitude"), ",") %>% fil
 #There are annoying charact or "(", ")" in the column entry and we want to remove them
 locat1$latitude<-as.numeric(substr(locat1$latitude,start = 2,stop = 13))
 locat1$longitude<-as.numeric(substr(locat1$longitude,start = 1, stop = 13))
-#Then we want to look at individual business pass/fail status
-locat1$pass_fail <- as.numeric(locat1$ViolStatus)-3
-same_food_court <- locat1 %>% group_by(LICENSENO)
-sum<-same_food_court %>% summarise(passrate = mean(pass_fail))
 
-food_court_rate <- inner_join(sum, locat1)
+#Then we want to look at individual business pass/fail status
+locat1$pass_fail <- as.numeric(locat1$ViolStatus)-3 
+locat1$score<-rep(NA,dim(locat1)[1])
+locat1$score[which(locat1$pass_fail==0)]<--1
+locat1$score[which(locat1$pass_fail==1)]<-1
+locat1$ViolLevel<-as.numeric(locat1$ViolLevel)-2
+same_food_court <- locat1 %>% group_by(LICENSENO)
+sum<-same_food_court %>% 
+  summarise(passrate=mean(pass_fail)) 
+sum1<-same_food_court %>% 
+  summarise(total_score=sum(ViolLevel*score))
+
+long<-locat1 %>% 
+  select("latitude","longitude","LICENSENO") %>% 
+  unique()
+
+tscore_data<-data.frame(left_join(sum1,long,by="LICENSENO"))
+rate_data<-sum %>% left_join(long,by="LICENSENO")
 
 #Then let's define the boundry
 boston_bbox <- make_bbox(lat = latitude, lon = longitude, data = locat1)
@@ -64,7 +77,17 @@ ggmap(boston_map) +
   ggtitle("Boston Food Court Map") +
   theme(plot.title = element_text(hjust = 0.5))
 
-map_data("boston")
+ggmap(boston_map) + 
+  geom_point(data = tscore_data, mapping = aes(x = longitude, y = latitude, color= total_score),size=0.8)+
+  xlab("Longitude")+ylab("Latitude") +
+  ggtitle("Boston Food Court Map") +
+  theme(plot.title = element_text(hjust = 0.5))
 
+
+ggmap(boston_map) + 
+  geom_point(data = rate_data, mapping = aes(x = longitude, y = latitude, color= passrate),size=0.8)+
+  xlab("Longitude")+ylab("Latitude") +
+  ggtitle("Boston Food Court Map") +
+  theme(plot.title = element_text(hjust = 0.8))
 ```
 
