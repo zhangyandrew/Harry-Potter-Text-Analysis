@@ -15,7 +15,11 @@ options(warn=-1)
 ```
 
 **Seperate Analysis on Each Article**
+
+
 ## P-Value Article 
+
+
 We want to analyze the passage from https://correlaid.org/blog/posts/understand-p-values. 
 ```{r}
 library(tidytext)
@@ -241,6 +245,7 @@ all_words <- all_words %>% bind_tf_idf(word, article, n)
 ```
 
 **N-grams and Correlations**
+
 We want to check the words as bigrams from now on.
 ```{r}
 correlaid_bigrams <- correlaid_txt %>% unnest_tokens(bigram, text, token = "ngrams", n = 2) #for p-value article
@@ -317,6 +322,8 @@ ggraph(bigram_graph, layout = "fr") +
   coord_fixed(0.8)+
   ggtitle("Network Plot for P-Value Article")
 
+
+
 #Network for Data to Story Article
 bigrams_separated2 <- 
   correlaid_bigrams2 %>%
@@ -386,3 +393,5 @@ article_lda %>%
 ```
 We can see that we have the same common words amongst all of the topics in the LDA.
 
+##Conclusion
+In conclusion, we can see that these two articles have a high correlation, and they both don't have apparent emotional tendency because they are academic articles. 
