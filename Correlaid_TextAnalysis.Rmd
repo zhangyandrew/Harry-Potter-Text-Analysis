@@ -3,8 +3,10 @@ title: "Text Analysis of Correlaid"
 author: "Longhao Chen/Qianhui Rong/Wenjia Xie/Andrew Zhang"
 date: "11/3/2018"
 output:
-  word_document: default
+  html_document:
+    df_print: paged
   pdf_document: default
+  word_document: default
 ---
 
 ```{r setup, include=FALSE,warning=FALSE}
@@ -235,7 +237,6 @@ The result is totally opposite to the Zipf's Law, which states that a word appea
 Then we apply bind_tf_idf function to find the important words for the content of each document by decreasing the weight for commonly used words and increasing the weight for words that not used very much. 
 ```{r}
 all_words <- all_words %>% bind_tf_idf(word, article, n)
-all_words
 ```
 
 **N-grams and Correlations**
@@ -294,8 +295,7 @@ not_words2 %>%
 And in this Data to Story article, on word is followed by "not".
 
 **Network of Bigrams**
-```{r}
-install.packages("ggraph")
+```{r,warning=FALSE}
 library(ggplot2)
 library(igraph)
 library(ggraph)
@@ -334,8 +334,6 @@ ggraph(bigram_graph2, layout = "fr") +
 ```
 
 ```{r}
-install.packages("topicmodels")
-install.packages("widyr")
 library(topicmodels)
 library(widyr)
 
