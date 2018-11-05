@@ -40,12 +40,10 @@ locat1$latitude<-as.numeric(substr(locat1$latitude,start = 2,stop = 13))
 locat1$longitude<-as.numeric(substr(locat1$longitude,start = 1, stop = 13))
 #Then we want to look at individual business pass/fail status
 locat1$pass_fail <- as.numeric(locat1$ViolStatus)-3
+same_food_court <- locat1 %>% group_by(LICENSENO)
+sum<-same_food_court %>% summarise(passrate = mean(pass_fail))
 
-same_food_court <- locat1 %>% group_by(locat1$LICENSENO)
-sum<-same_food_court %>% summarise(sum(same_food_court$pass_fail))
-View(sum)
-# score <- act_Court %>% group_by(businessName,ViolStatus) %>%
-#   summarise(businessName,ViolStatus)
+food_court_rate <- inner_join(sum, locat1)
 
 #Then let's define the boundry
 boston_bbox <- make_bbox(lat = latitude, lon = longitude, data = locat1)
