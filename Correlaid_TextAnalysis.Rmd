@@ -10,7 +10,8 @@ output:
 ---
 
 ```{r setup, include=FALSE,warning=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = FALSE)
+options(warn=-1)
 ```
 
 **Seperate Analysis on Each Article**
