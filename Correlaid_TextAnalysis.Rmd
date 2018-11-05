@@ -373,7 +373,6 @@ word_article <- total_words %>%
   mutate(word_total = n()) %>% 
   ungroup() %>% 
   filter(word_total > 20)
-word_article
 
 ## Convert into document term matrix
 word_article_dtm <- word_article %>% cast_dtm(article, word, n)
