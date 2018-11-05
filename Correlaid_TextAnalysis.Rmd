@@ -295,6 +295,8 @@ And in this Data to Story article, on word is followed by "not".
 
 **Network of Bigrams**
 ```{r}
+install.packages("ggraph")
+library(ggplot2)
 library(igraph)
 library(ggraph)
 
@@ -330,4 +332,59 @@ ggraph(bigram_graph2, layout = "fr") +
   coord_fixed(0.8)+
   ggtitle("Network Plot for Data to Story Article")
 ```
+
+```{r}
+install.packages("topicmodels")
+install.packages("widyr")
+library(topicmodels)
+library(widyr)
+
+totalwords_sent <- total_words %>% 
+  inner_join(get_sentiments("bing"), by = c(word = "word"))
+totalwords_sent
+
+total_words_tf_idf <- total_words %>% 
+  bind_tf_idf(word, article, n) %>% 
+  arrange(desc(tf_idf))
+total_words_tf_idf
+
+article_corr <- total_words %>% 
+  pairwise_cor(article, word, n, sort = TRUE)
+article_corr
+
+article_corr %>% 
+  graph_from_data_frame() %>% 
+  ggraph(layout = "fr") +
+  geom_edge_link(aes(alpha = correlation, width = correlation)) +
+  geom_node_point(size = 6, color = "lightblue") +
+  geom_node_text(aes(label = name), repel = TRUE) + 
+  theme_void()
+```
+
+```{r}
+word_article <- total_words %>% 
+  group_by(word) %>% 
+  mutate(word_total = n()) %>% 
+  ungroup() %>% 
+  filter(word_total > 20)
+word_article
+
+## Convert into document term matrix
+word_article <- tidy(word_article)
+word_article_dtm <- word_article %>% cast_dtm(article, word, n)
+
+article_lda <- LDA(word_article_dtm, k = 4, control = list(seed = 123))
+
+article_lda %>% 
+  tidy() %>% 
+  group_by(topic) %>% 
+  top_n(8, beta) %>% 
+  ungroup() %>% 
+  mutate(term = reorder(term, beta)) %>% 
+  ggplot(aes(term, beta, fill = factor(topic))) + 
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~ topic, scales = "free_y") +
+  coord_flip()
+```
+We can see that we have the same common words amongst all of the topics in the LDA.
 
