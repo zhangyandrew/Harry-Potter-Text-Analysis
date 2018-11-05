@@ -3,9 +3,9 @@ title: "Text Analysis of Correlaid"
 author: "Longhao Chen/Qianhui Rong/Wenjia Xie/Andrew Zhang"
 date: "11/3/2018"
 output:
+  pdf_document: default
   html_document:
     df_print: paged
-  pdf_document: default
   word_document: default
 ---
 
@@ -368,7 +368,6 @@ word_article <- total_words %>%
 word_article
 
 ## Convert into document term matrix
-word_article <- tidy(word_article)
 word_article_dtm <- word_article %>% cast_dtm(article, word, n)
 
 article_lda <- LDA(word_article_dtm, k = 4, control = list(seed = 123))
