@@ -92,3 +92,51 @@ ggmap(boston_map) +
   theme(plot.title = element_text(hjust = 0.8))
 ```
 
+##Using Leaflet to make a map
+```{r}
+library(leaflet)
+library(dplyr)
+library(stringr)
+
+#Manipulate latitude/longitude column to leaflet readable version
+latitude <- str_sub(mayorsfoodcourt$Location,2,13)
+longitude <- str_sub(mayorsfoodcourt$Location,16,28)
+latitude <- as.numeric(latitude)
+longitude <- as.numeric(longitude)
+
+mayorsfoodcourt %>% 
+  filter(is.na(mayorsfoodcourt$Location)==FALSE)%>%
+  select(businessName,RESULT,ViolLevel,ViolStatus)-> locat_data 
+  
+locat_data <- cbind(locat_data,latitude,longitude)
+
+# leaflet(locat_data)%>%
+#   addProviderTiles("Esri.WorldStreetMap")%>%
+#   setView(-71.13062, 42.35308, zoom=12)%>%
+#   addMarkers(~as.numeric(latitude),~as.numeric(longitude),popup=~businessName)
+
+#Using different emoji to represent different types of comments
+redIcon1 <- makeIcon(
+  iconUrl = "https://www.google.com/search?biw=1280&bih=666&tbm=isch&sa=1&ei=DRzhW8PEB5C25gLm55GgBA&q=emoji&oq=emoji&gs_l=img.3..0i67l4j0j0i67l2j0l2j0i67.5046.6512..6778...1.0..0.81.441.6......1....1..gws-wiz-img.......35i39.9wJHesLtdqU#imgrc=R1xtuzRaYtd9aM:",
+  iconWidth = 20, iconHeight = 20,
+  iconAnchorX = 15, iconAnchorY = 15
+)
+
+redIcon2 <- makeIcon(
+  iconUrl = "https://www.google.com/search?biw=1280&bih=666&tbm=isch&sa=1&ei=DRzhW8PEB5C25gLm55GgBA&q=emoji&oq=emoji&gs_l=img.3..0i67l4j0j0i67l2j0l2j0i67.5046.6512..6778...1.0..0.81.441.6......1....1..gws-wiz-img.......35i39.9wJHesLtdqU#imgdii=Y34JhcOrO86TnM:&imgrc=RU0xqJgiK7_GeM:",
+  iconWidth = 20, iconHeight = 20,
+  iconAnchorX = 15, iconAnchorY = 15
+)
+
+leaflet(locat_data)%>%
+  leaflet()%>%
+  addTiles()%>%
+  setView(-71.13062, 42.35308, zoom = 12)%>%
+  addMarkers(data=locat_data[locat_data$ViolStatus=="Pass",],popup=~businessName,icon = redIcon1)%>%
+  addMarkers(data=locat_data[locat_data$ViolStatus=="Fail",],popup=~businessName,icon = redIcon2)
+
+```
+
+
+
+
